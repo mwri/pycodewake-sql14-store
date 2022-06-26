@@ -25,7 +25,7 @@ install_requires = [
     "sqlalchemy~=1.4.0",
     "sqlalchemy-utils~=0.38.2",
     "bencode.py~=4.0.0",
-    "code-wake~=0.0.1",
+    "code-wake~=0.0.2",
 ]
 
 extras_require = {

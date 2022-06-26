@@ -1,0 +1,9 @@
+/.coverage
+/.vscode
+/build
+/dist
+/pycodewake_sql14_store.egg-info/
+__pycache__/
+/venv
+/coverage.xml
+/.nox

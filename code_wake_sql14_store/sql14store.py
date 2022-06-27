@@ -261,6 +261,7 @@ class Sql14Store:
         exc: Optional[Exception] = None,
         inc_st: Optional[bool] = None,
         st_len: Optional[int] = None,
+        st_data: Optional[List[str, int, str]] = None,
     ) -> Sql14Store.Event:
         with self.session() as session:
             if inc_st is None:
@@ -269,7 +270,9 @@ class Sql14Store:
             st = None
 
             if inc_st:
-                if exc is not None:
+                if st_data is not None:
+                    st = Stacktrace.from_data(st_data, st_len=st_len)
+                elif exc is not None:
                     st = Stacktrace.from_exc(exc, st_len=st_len)
                 else:
                     st = Stacktrace.from_caller(st_len=st_len)

@@ -285,6 +285,7 @@ class Sql14Store:
         inc_st: Optional[bool] = None,
         st_len: Optional[int] = None,
         st_data: Optional[List[str, int, str]] = None,
+        when_ts: float = None,
         sync: bool = False,
     ) -> Optional[Sql14Store.Event]:
         with self.session() as session:
@@ -331,6 +332,7 @@ class Sql14Store:
                 process_id=process.id,
                 digest=None if data is None else utils.data_digest(data),
                 stacktrace_id=stacktrace_id,
+                when_ts=when_ts,
             )
             session.add(event_record)
 

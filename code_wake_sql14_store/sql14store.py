@@ -80,7 +80,7 @@ class Sql14Store:
         id = sa.Column(sa.Integer, primary_key=True)
         when_ts = sa.Column(sa.Float, nullable=False, default=lambda: datetime.now().timestamp())
         process_id = sa.Column(sa.Integer, sa.ForeignKey("processes.id"), nullable=False)
-        digest = sa.Column(sa.BINARY, nullable=True, unique=True)
+        digest = sa.Column(sa.BINARY, nullable=True)
         stacktrace_id = sa.Column(sa.Integer, sa.ForeignKey("stacktraces.id"), nullable=True)
         process = orm.relationship("Process", lazy="joined")
         data = orm.relationship("EventData", back_populates="event", lazy="joined")

@@ -65,9 +65,11 @@ class Sql14Store:
         __tablename__ = "app_vsns"
 
         id = sa.Column(sa.Integer, primary_key=True)
-        vsn = sa.Column(sa.String, unique=True, nullable=False)
+        vsn = sa.Column(sa.String, nullable=False)
         app_id = sa.Column(sa.Integer, sa.ForeignKey("apps.id"), nullable=False)
         app = orm.relationship("App", lazy="joined")
+
+        vsn_app_unique = sa.UniqueConstraint('vsn", "app_id')
 
         def __repr__(self):
             return f"<Sql14Store.AppVsn(id='{self.id}')>"

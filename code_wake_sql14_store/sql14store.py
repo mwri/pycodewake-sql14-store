@@ -138,7 +138,6 @@ class Sql14Store:
         self._setup_tables()
 
     def _create_engine(self, dsn, *args, echo=False, **kwargs) -> sa.engine.base.Engine:
-        print(f"GO {dsn}")
         return sa.create_engine(dsn, echo=echo)
 
     def _create_session_factory(self, engine: sa.engine.base.Engine, *args, **kwargs) -> orm.session.sessionmaker:
@@ -168,62 +167,84 @@ class Sql14Store:
 
     def get_environment_by_id(self, id: int) -> Optional[Sql14Store.Environment]:
         with self.session() as session:
-            return session.query(self.Environment).get(id)
+            return self._get_environment_by_id(session, id)
+
+    def _get_environment_by_id(self, session, id: int) -> Optional[Sql14Store.Environment]:
+        return session.query(self.Environment).get(id)
+
+    def get_environment_by_name(self, name: str) -> Optional[Sql14Store.Environment]:
+        with self.session() as session:
+            return self._get_environment_by_name(session, name)
+
+    def _get_environment_by_name(self, session, name: str) -> Optional[Sql14Store.Environment]:
+        env_records = session.query(self.Environment).filter(self.Environment.name == name).all()
+        return None if len(env_records) == 0 else env_records[0]
 
     def get_app_by_id(self, id: int) -> Optional[Sql14Store.App]:
         with self.session() as session:
-            return session.query(self.App).get(id)
+            return self._get_app_by_id(session, id)
+
+    def _get_app_by_id(self, session, id: int) -> Optional[Sql14Store.App]:
+        return session.query(self.App).get(id)
+
+    def get_app_by_name(self, name: str) -> Optional[Sql14Store.App]:
+        with self.session() as session:
+            return self._get_app_by_name(session, name)
+
+    def _get_app_by_name(self, session, name: str) -> Optional[Sql14Store.App]:
+        app_records = session.query(self.App).filter(self.App.name == name).all()
+        return None if len(app_records) == 0 else app_records[0]
 
     def get_app_vsn_by_id(self, id: int) -> Optional[Sql14Store.AppVsn]:
         with self.session() as session:
-            return session.query(self.AppVsn).get(id)
+            return self._get_app_vsn_by_id(session, id)
+
+    def _get_app_vsn_by_id(self, session, id: int) -> Optional[Sql14Store.AppVsn]:
+        return session.query(self.AppVsn).get(id)
 
     def get_process_by_id(self, id: int) -> Optional[Sql14Store.Process]:
         with self.session() as session:
-            process_record = session.query(self.Process).get(id)
+            return self._get_process_by_id(session, id)
 
-            if process_record is not None:
-                app_record = session.query(self.App).get(process_record.app_id)
-                app_vsn = None
-                if process_record.app_vsn_id is not None:
-                    app_vsn_record = session.query(self.AppVsn).get(process_record.app_vsn_id)
-                    app_vsn = app_vsn_record.vsn
-                env_name = None
-                if process_record.environment_id is not None:
-                    env_record = session.query(self.Environment).get(process_record.environment_id)
-                    env_name = env_record.name
+    def _get_process_by_id(self, session, id: int) -> Optional[Sql14Store.Process]:
+        process_record = session.query(self.Process).get(id)
 
-            return process_record
+        if process_record is not None:
+            app_record = session.query(self.App).get(process_record.app_id)
+            app_vsn = None
+            if process_record.app_vsn_id is not None:
+                app_vsn_record = session.query(self.AppVsn).get(process_record.app_vsn_id)
+                app_vsn = app_vsn_record.vsn
+            env_name = None
+            if process_record.environment_id is not None:
+                env_record = session.query(self.Environment).get(process_record.environment_id)
+                env_name = env_record.name
+
+        return process_record
 
     def insert_process(self, unstored_process: Process) -> Sql14Store.Process:
         with self.session() as session:
-            if unstored_process.environment is None:
-                environment_id = None
-            else:
-                env_records = (
-                    session.query(self.Environment)
-                    .filter(
-                        self.Environment.name == unstored_process.environment.name,
-                    )
-                    .all()
-                )
-                if len(env_records) == 0:
+            env_record = None
+            environment_id = None
+
+            if unstored_process.environment is not None:
+                env_record = self._get_environment_by_name(session, unstored_process.environment.name)
+
+                if env_record is None:
                     env_record = self.Environment(name=unstored_process.environment.name)
                     session.add(env_record)
                     session.flush()
-                else:
-                    env_record = env_records[0]
 
                 environment_id = env_record.id
 
-            app_records = session.query(self.App).filter(self.App.name == unstored_process.app.name).all()
-            if len(app_records) == 0:
+            app_record = self._get_app_by_name(session, unstored_process.app.name)
+
+            if app_record is None:
                 app_record = self.App(name=unstored_process.app.name)
                 session.add(app_record)
-            else:
-                app_record = app_records[0]
 
             app_vsn_id = None
+
             if unstored_process.app_vsn is not None:
                 app_vsn_records = (
                     session.query(self.AppVsn).filter(self.AppVsn.vsn == unstored_process.app_vsn.vsn).all()
@@ -262,7 +283,8 @@ class Sql14Store:
         inc_st: Optional[bool] = None,
         st_len: Optional[int] = None,
         st_data: Optional[List[str, int, str]] = None,
-    ) -> Sql14Store.Event:
+        sync: bool = False,
+    ) -> Optional[Sql14Store.Event]:
         with self.session() as session:
             if inc_st is None:
                 inc_st = Config()["stacktraces"]["include"]["for_non_exceptions" if exc is None else "from_exceptions"]
@@ -320,7 +342,7 @@ class Sql14Store:
             session.commit()
             session.refresh(event_record)
 
-            return event_record
+            return event_record if sync else None
 
     def get_events_by_data(self, where: Iterable[Tuple[str, str]]) -> List[Sql14Store.Event]:
         with self.session() as session:

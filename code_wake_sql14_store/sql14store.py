@@ -310,23 +310,22 @@ class Sql14Store:
                 stacktrace_records = session.query(self.Stacktrace).filter(self.Stacktrace.digest == digest).all()
                 if len(stacktrace_records) == 0:
                     stacktrace_record = self.Stacktrace(digest=digest)
+                    session.add(stacktrace_record)
+                    session.flush()
+
+                    for sf in st.stackframes:
+                        stackframe_record = self.Stackframe(
+                            stacktrace_id=stacktrace_record.id,
+                            filename=sf.filename,
+                            lineno=sf.lineno,
+                            src=sf.src,
+                        )
+                        session.add(stackframe_record)
                 else:
                     stacktrace_record = stacktrace_records[0]
+                    session.add(stacktrace_record)
 
-                session.add(stacktrace_record)
-                session.flush()
                 stacktrace_id = stacktrace_record.id
-
-                session.flush()
-
-                for sf in st.stackframes:
-                    stackframe_record = self.Stackframe(
-                        stacktrace_id=stacktrace_record.id,
-                        filename=sf.filename,
-                        lineno=sf.lineno,
-                        src=sf.src,
-                    )
-                    session.add(stackframe_record)
 
             event_record = self.Event(
                 process_id=process.id,

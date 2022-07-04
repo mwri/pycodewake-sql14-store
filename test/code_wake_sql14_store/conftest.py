@@ -15,3 +15,8 @@ def store_params():
 @pytest.fixture
 def store_cls():
     return Sql14Store
+
+
+@pytest.fixture
+def store_cleanup():
+    return lambda store: None

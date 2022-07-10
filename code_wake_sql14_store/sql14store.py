@@ -349,9 +349,14 @@ class Sql14Store:
 
             return event_record if sync else None
 
-    def get_events_by_data(self, where: Iterable[Tuple[str, str]]) -> List[Sql14Store.Event]:
+    def get_events_by_data(
+        self, where: Iterable[Tuple[str, str]], process_id: Optional[int] = None
+    ) -> List[Sql14Store.Event]:
         with self.session() as session:
             query = session.query(self.Event)
+
+            if process_id is not None:
+                query = query.filter(self.Event.process_id == process_id)
 
             for key, val in where:
                 EventDataAlias = orm.aliased(self.EventData)

@@ -159,11 +159,15 @@ class Sql14Store:
             App = self.App
             app_record = App(name=name)
             session.add(app_record)
+            session.flush()
+            session.refresh(app_record)
 
             if vsn is not None:
                 AppVsn = self.AppVsn
-                event_record = AppVsn(vsn=vsn, app_id=app_record.id)
-                session.add(event_record)
+                app_vsn_record = AppVsn(vsn=vsn, app_id=app_record.id)
+                session.add(app_vsn_record)
+                session.flush()
+                session.refresh(app_vsn_record)
 
             session.flush()
 
@@ -201,7 +205,9 @@ class Sql14Store:
 
     def get_app_vsn_by_id(self, id: int) -> Optional[Sql14Store.AppVsn]:
         with self.session() as session:
-            return self._get_app_vsn_by_id(session, id)
+            app_vsn_record = self._get_app_vsn_by_id(session, id)
+            session.refresh(app_vsn_record)
+            return app_vsn_record
 
     def _get_app_vsn_by_id(self, session, id: int) -> Optional[Sql14Store.AppVsn]:
         return session.query(self.AppVsn).get(id)
@@ -238,6 +244,7 @@ class Sql14Store:
                     env_record = self.Environment(name=unstored_process.environment.name)
                     session.add(env_record)
                     session.flush()
+                    session.refresh(env_record)
 
                 environment_id = env_record.id
 
@@ -257,6 +264,8 @@ class Sql14Store:
                 if len(app_vsn_records) == 0:
                     app_vsn_record = self.AppVsn(vsn=unstored_process.app_vsn.vsn, app_id=app_record.id)
                     session.add(app_vsn_record)
+                    session.flush()
+                    session.refresh(app_vsn_record)
                     app_vsn_id = app_vsn_record.id
                 else:
                     app_vsn_record = app_vsn_records[0]

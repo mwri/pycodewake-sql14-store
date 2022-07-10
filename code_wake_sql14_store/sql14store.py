@@ -57,6 +57,7 @@ class Sql14Store:
 
         id = sa.Column(sa.Integer, primary_key=True)
         name = sa.Column(sa.String, unique=True, nullable=False)
+        vsns = orm.relationship("AppVsn", lazy="joined", back_populates="app")
 
         def __repr__(self):
             return f"<Sql14Store.App(id='{self.id}')>"
@@ -68,6 +69,7 @@ class Sql14Store:
         vsn = sa.Column(sa.String, nullable=False)
         app_id = sa.Column(sa.Integer, sa.ForeignKey("apps.id"), nullable=False)
         app = orm.relationship("App", lazy="joined")
+        app = orm.relationship("App", lazy="joined", back_populates="vsns")
 
         vsn_app_unique = sa.UniqueConstraint('vsn", "app_id')
 

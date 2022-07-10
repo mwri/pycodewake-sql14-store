@@ -57,6 +57,7 @@ class Sql14Store:
 
         id = sa.Column(sa.Integer, primary_key=True)
         name = sa.Column(sa.String, unique=True, nullable=False)
+        vsns = orm.relationship("AppVsn", lazy="joined", back_populates="app")
 
         def __repr__(self):
             return f"<Sql14Store.App(id='{self.id}')>"
@@ -68,6 +69,7 @@ class Sql14Store:
         vsn = sa.Column(sa.String, nullable=False)
         app_id = sa.Column(sa.Integer, sa.ForeignKey("apps.id"), nullable=False)
         app = orm.relationship("App", lazy="joined")
+        app = orm.relationship("App", lazy="joined", back_populates="vsns")
 
         vsn_app_unique = sa.UniqueConstraint('vsn", "app_id')
 
@@ -157,15 +159,28 @@ class Sql14Store:
             App = self.App
             app_record = App(name=name)
             session.add(app_record)
+            session.flush()
+            session.refresh(app_record)
 
             if vsn is not None:
                 AppVsn = self.AppVsn
-                event_record = AppVsn(vsn=vsn, app_id=app_record.id)
-                session.add(event_record)
+                app_vsn_record = AppVsn(vsn=vsn, app_id=app_record.id)
+                session.add(app_vsn_record)
+                session.flush()
+                session.refresh(app_vsn_record)
 
             session.flush()
 
             return app_record
+
+    def insert_app_vsn(self, app_id: int, vsn: str) -> Sql14Store.AppVsn:
+        with self.session() as session:
+            app_vsn_record = self.AppVsn(vsn=vsn, app_id=app_id)
+            session.add(app_vsn_record)
+            session.flush()
+            session.refresh(app_vsn_record)
+
+            return app_vsn_record
 
     def get_environment_by_id(self, id: int) -> Optional[Sql14Store.Environment]:
         with self.session() as session:
@@ -199,7 +214,9 @@ class Sql14Store:
 
     def get_app_vsn_by_id(self, id: int) -> Optional[Sql14Store.AppVsn]:
         with self.session() as session:
-            return self._get_app_vsn_by_id(session, id)
+            app_vsn_record = self._get_app_vsn_by_id(session, id)
+            session.refresh(app_vsn_record)
+            return app_vsn_record
 
     def _get_app_vsn_by_id(self, session, id: int) -> Optional[Sql14Store.AppVsn]:
         return session.query(self.AppVsn).get(id)
@@ -236,6 +253,7 @@ class Sql14Store:
                     env_record = self.Environment(name=unstored_process.environment.name)
                     session.add(env_record)
                     session.flush()
+                    session.refresh(env_record)
 
                 environment_id = env_record.id
 
@@ -255,6 +273,8 @@ class Sql14Store:
                 if len(app_vsn_records) == 0:
                     app_vsn_record = self.AppVsn(vsn=unstored_process.app_vsn.vsn, app_id=app_record.id)
                     session.add(app_vsn_record)
+                    session.flush()
+                    session.refresh(app_vsn_record)
                     app_vsn_id = app_vsn_record.id
                 else:
                     app_vsn_record = app_vsn_records[0]
@@ -347,9 +367,14 @@ class Sql14Store:
 
             return event_record if sync else None
 
-    def get_events_by_data(self, where: Iterable[Tuple[str, str]]) -> List[Sql14Store.Event]:
+    def get_events_by_data(
+        self, where: Iterable[Tuple[str, str]], process_id: Optional[int] = None
+    ) -> List[Sql14Store.Event]:
         with self.session() as session:
             query = session.query(self.Event)
+
+            if process_id is not None:
+                query = query.filter(self.Event.process_id == process_id)
 
             for key, val in where:
                 EventDataAlias = orm.aliased(self.EventData)

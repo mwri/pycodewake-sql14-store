@@ -4,7 +4,7 @@ import sys
 from typing import Any, Dict
 
 name = "code-wake-sql14-store"
-version = "0.1.0"
+version = "0.2.0"
 author = "Michael Wright"
 author_email = "mjw@methodanalysis.com"
 description = "Code Wake SQL Academy 1.4 store adapter"

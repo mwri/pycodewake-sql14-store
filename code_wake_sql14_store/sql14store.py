@@ -173,6 +173,15 @@ class Sql14Store:
 
             return app_record
 
+    def insert_app_vsn(self, app_id: int, vsn: str) -> Sql14Store.AppVsn:
+        with self.session() as session:
+            app_vsn_record = self.AppVsn(vsn=vsn, app_id=app_id)
+            session.add(app_vsn_record)
+            session.flush()
+            session.refresh(app_vsn_record)
+
+            return app_vsn_record
+
     def get_environment_by_id(self, id: int) -> Optional[Sql14Store.Environment]:
         with self.session() as session:
             return self._get_environment_by_id(session, id)

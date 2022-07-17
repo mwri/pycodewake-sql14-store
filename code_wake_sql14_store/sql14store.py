@@ -384,3 +384,23 @@ class Sql14Store:
             session.flush()
 
             return event_records
+
+    def get_processes(
+        self,
+        app_id: Optional[int] = None,
+        from_ts: Optional[float] = None,
+        to_ts: Optional[float] = None,
+    ) -> Optional[Sql13Store.Process]:
+        with self.session() as session:
+            query = session.query(self.Process)
+            if app_id is not None:
+                query = query.filter(self.Process.app_id == app_id)
+            if from_ts is not None:
+                query = query.filter(self.Process.run_ts >= from_ts)
+            if to_ts is not None:
+                query = query.filter(self.Process.run_ts < to_ts)
+
+            process_records = query.all()
+            session.flush()
+
+            return process_records
